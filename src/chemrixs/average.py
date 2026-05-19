@@ -167,7 +167,7 @@ class Average():
             ax[2].set_xlabel('inc. energy (eV)')
 
             if calibrated == True:
-                ax[0].set_ylabel('emission (pixel)')
+                ax[0].set_ylabel('emission (eV)')
             else:
                 ax[0].set_ylabel('emission (pixel)')
 
