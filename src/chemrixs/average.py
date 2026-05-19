@@ -236,13 +236,20 @@ class Average():
                                    (self.average['PFY_on_mean']-self.average['PFY_off_mean'])-dPFYerr,
                                    (self.average['PFY_on_mean']-self.average['PFY_off_mean'])+dPFYerr,
                                    alpha=0.2,color='tab:blue')
+                ax[2].plot(self.average['scanvar_on'],self.average['PFY_on_std'],color='tab:orange')
+                ax[2].plot(self.average['scanvar_off'],self.average['PFY_off_std'],color='tab:blue')
+                ax[2].plot(self.average['scanvar_on'],dPFYerr,color='tab:green')
+                ax[2].set_ylabel('error')
 
             if self.scantype=='mono_fly':
                 ax[0].set_xlabel('inc. energy (eV)')
                 ax[1].set_xlabel('inc. energy (eV)')
+                ax[2].set_xlabel('inc. energy (eV)')
             elif self.scantype=='delay_fly':
                 ax[0].set_xlabel('delay (s)')
                 ax[1].set_xlabel('delay (s)')
+                ax[2].set_xlabel('delay (s)')
+                
             ax[0].set_xlim([np.nanmin(self.average['scanvar_on']),np.nanmax(self.average['scanvar_on'])])
             ax[0].set_title(f'Runs {self.runs[0]} to {self.runs[-1]}')
         else:
