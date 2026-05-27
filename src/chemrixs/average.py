@@ -59,9 +59,11 @@ class Average():
         
     """
 
+#####ZY_edits:20260517 - add despeckle option to handle hot pixels.
     def __init__(self, runs: list | int, proc_path: str | Path, avg: str, output_path: str | Path,
-                raw_path: str | Path, bgpath: str | Path, fyaml: str | Path, bgyaml: str | Path, 
-                save: bool = True, scantype: str = '',norm: bool = True, emi_calib: bool = False):
+                    raw_path: str | Path, bgpath: str | Path, fyaml: str | Path, bgyaml: str | Path, 
+                    save: bool = True, scantype: str = '',norm: bool = True, emi_calib: bool = False,
+                    despeckle: bool = True):
         
         self.runs = runs
         self.proc_path = proc_path
@@ -82,6 +84,7 @@ class Average():
             self.bgyaml = bgyaml
             self.scantype = scantype
             self.norm = norm
+            self.despeckle = despeckle
 
         self.check_reduce()
 
@@ -91,7 +94,8 @@ class Average():
             self.laser = True
         else:
             self.laser = False
-
+        if self.despeckle:
+            self.apply_despeckle()
         self.average
         self.get_PFYs()
 
@@ -143,6 +147,82 @@ class Average():
                 emi_calib = emi_config[2:4]
         emi = emi_calib[0]*px+emi_calib[1]
         return emi
+
+#####ZY_edits:20260517 - add despeckle method
+    def apply_despeckle(self, kernel_size=3, n_sigma=10, verbose=True):
+        """
+        Replace anomaly pixels in all 2D maps inside self.average.
+
+        For each pixel, compute median + MAD over a kernel_size x kernel_size
+        neighborhood (excluding the center). If |val - local_median| exceeds
+        n_sigma * local_MAD, the pixel is flagged and replaced with the
+        local median.
+
+        """
+        if kernel_size % 2 == 0:
+            raise ValueError('kernel_size must be odd')
+        half = kernel_size // 2
+        offsets = [(di, dj) for di in range(-half, half + 1)
+                           for dj in range(-half, half + 1)
+                           if not (di == 0 and dj == 0)]
+
+        mean_keys = [k for k in ['axis_svls_off_mean', 'axis_svls_on_mean',
+                                  'axis_svls_mean'] if k in self.average]
+
+        self.despeckle_masks = {}
+        total_flagged = 0
+        for mkey in mean_keys:
+            Z = np.asarray(self.average[mkey]).astype(float)
+            ny, nx = Z.shape
+
+            # build a (n_neighbors, ny, nx) stack with NaN padding at edges
+            nbr_stack = np.full((len(offsets), ny, nx), np.nan)
+            for k, (di, dj) in enumerate(offsets):
+                src_i0 = max(0, -di); src_i1 = ny - max(0, di)
+                src_j0 = max(0, -dj); src_j1 = nx - max(0, dj)
+                dst_i0 = max(0, di);  dst_i1 = ny - max(0, -di)
+                dst_j0 = max(0, dj);  dst_j1 = nx - max(0, -dj)
+                nbr_stack[k, dst_i0:dst_i1, dst_j0:dst_j1] = \
+                    Z[src_i0:src_i1, src_j0:src_j1]
+
+            local_median = np.nanmedian(nbr_stack, axis=0)
+            local_mad    = np.nanmedian(np.abs(nbr_stack - local_median[None]), axis=0)
+            local_sigma  = 1.4826 * local_mad
+
+            # avoid divide-by-zero where local MAD is 0 (flat regions)
+            floor = np.nanmedian(local_sigma[local_sigma > 0])
+            if not np.isfinite(floor):
+                floor = np.nanmedian(np.abs(Z)) * 1e-3
+            local_sigma = np.where(local_sigma > 0, local_sigma, floor)
+
+            deviation = np.abs(Z - local_median)
+            mask = (deviation > n_sigma * local_sigma) & ~np.isnan(Z)
+
+            # replace flagged pixels in the mean map with local median
+            Z_clean = Z.copy()
+            Z_clean[mask] = local_median[mask]
+            self.average[mkey] = Z_clean
+            self.despeckle_masks[mkey] = mask
+
+            # propagate mask to companion std/sum arrays: set them to NaN
+            laser_tag = mkey.replace('_mean', '')
+            for suffix in ('_std', '_sum'):
+                ckey = laser_tag + suffix
+                if ckey in self.average:
+                    arr = np.asarray(self.average[ckey]).astype(float).copy()
+                    arr[mask] = np.nan
+                    self.average[ckey] = arr
+
+            total_flagged += mask.sum()
+            if verbose:
+                print(f'  despeckle [{mkey}]: kernel={kernel_size}, '
+                      f'n_sigma={n_sigma} -> flagged {mask.sum()} pixels '
+                      f'({100*mask.sum()/mask.size:.3f}%)')
+
+        if verbose:
+            print(f'  despeckle TOTAL: {total_flagged} pixels across '
+                  f'{len(mean_keys)} map(s)')
+
 
     def plot_svls2D(self, calibrated=True,savefig=False,transparent=True,figsize=(12,8),scale=1):
 
@@ -219,7 +299,7 @@ class Average():
         
         """
         if self.laser == True:
-            fig,ax = plt.subplots(1,2,sharex=True, sharey=True,figsize=figsize)
+            fig,ax = plt.subplots(1,3,sharex=True, sharey=True,figsize=figsize)
             ax[0].plot(self.average['scanvar_off'],self.average['PFY_off_mean'],color='tab:blue')
             ax[0].plot(self.average['scanvar_on'],self.average['PFY_on_mean'],color='tab:orange')
             ax[1].plot(self.average['scanvar_on'],self.average['PFY_on_mean']-self.average['PFY_off_mean'],color='tab:blue')
@@ -272,7 +352,7 @@ class Average():
         if savefig:
             fig.savefig(f'figs/SVLS1D_{self.runs[0]}_{self.runs[-1]}.png',transparent=transparent,
                         dpi=200, bbox_inches='tight')
-    
+       
     def plot_svls2D_ET(self, savefig=False,transparent=True,figsize=(12,8),scale=1,ETstep=0.2):
         try:
             self.average['E_emi'] = self.get_emi()
