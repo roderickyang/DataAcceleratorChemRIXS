@@ -42,8 +42,8 @@ emi_calib: [[1,87,-0.09767442, 738.974419],
 
 #Defining ROIs for the different detectors
 apd:   { channels: [5,7], roi: [[65, 75],[65, 75]],  bg_roi: [0,60]}
-fim0:   { channels: [4,5,6,7], roi: [[65, 75],[65, 75],[65, 75],[65, 75]],  bg_roi: [0,60]}
-fim1:   { channels: [4,5,6,7], roi: [[59, 66],[59, 66],[59, 66],[59, 66]],  bg_roi: [0,60]}
+fim0:   { channels: [4,5,6,7], roi: [[65, 75],[65, 75],[65, 75],[65, 75]],  bg_roi: [0,60]}   #####Before(fromHBQ?)
+fim1:   { channels: [4,5,6,7], roi: [[59, 66],[59, 66],[59, 66],[59, 66]],  bg_roi: [0,60]}   #####Before(fromHBQ?)
 andor_vls: {roi: [1400,1600,100,150], offset_roi: [1500,1600], threshold: [3,10000], rot_angle: 4, rot_crop: [11:510]} # first 2 values used both 2D and 3D, last two only for 3D
 andor_dir: {roi: [700,1300], offset_roi: [400,500]}  # first 2 values used both 2D and 3D, last two only for 3D
 svls: {roi: [2000,6000], offset_roi: [20,100], threshold: [0,50000]}  # first 2 values used both 2D and 3D, last two only for 3D
