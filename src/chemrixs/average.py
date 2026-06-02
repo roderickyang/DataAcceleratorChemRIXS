@@ -59,7 +59,7 @@ class Average():
         
     """
 
-#####ZY_edits:20260517 - add despeckle option to handle hot pixels.
+#####ZY_edits - 051726 - add despeckle option to handle hot pixels.
     def __init__(self, runs: list | int, proc_path: str | Path, avg: str, output_path: str | Path,
                     raw_path: str | Path, bgpath: str | Path, fyaml: str | Path, bgyaml: str | Path, 
                     save: bool = True, scantype: str = '',norm: bool = True, emi_calib: bool = False,
@@ -126,6 +126,13 @@ class Average():
             print('not count averaged')
             avg = avg_data(self.runs, self.proc_path)
 
+        #####ZY_edits - 060126 - use "sum over sum - sos"
+        if 'axis_svls_on_sumSV' in avg and 'axis_svls_on_sumI0' in avg:
+            avg['axis_svls_on_norm']  = avg['axis_svls_on_sumSV']  / avg['axis_svls_on_sumI0'][:, None]
+            avg['axis_svls_off_norm'] = avg['axis_svls_off_sumSV'] / avg['axis_svls_off_sumI0'][:, None]
+            avg['PFY_on_sos']  = avg['axis_svls_on_sumSV'].sum(axis=1)  / avg['axis_svls_on_sumI0']
+            avg['PFY_off_sos'] = avg['axis_svls_off_sumSV'].sum(axis=1) / avg['axis_svls_off_sumI0']
+
         return avg
     
     def get_PFYs(self):
@@ -148,7 +155,7 @@ class Average():
         emi = emi_calib[0]*px+emi_calib[1]
         return emi
 
-#####ZY_edits:20260517 - add despeckle method
+#####ZY_edits - 051726 - add despeckle method
     def apply_despeckle(self, kernel_size=3, n_sigma=10, verbose=True):
         """
         Replace anomaly pixels in all 2D maps inside self.average.
@@ -290,134 +297,137 @@ class Average():
 
         # return fig
 
-    def plot_svls1D(self,savefig=False,transparent=True,figsize=(12,8),plot_err=True):
-        """
-        Plotting binned and averaged SVLS detector, collapsed on scanvar axis.
-        
-        Paramters
-        ---------
-        
-        """
+    def plot_svls1D(self, savefig=False, transparent=True, figsize=(12,8), plot_err=True, mode='mean'):
+        """Plotting binned and averaged SVLS detector, collapsed on scanvar axis."""
+        # NEW: mode='mean' or 'sos'
+        key_pfy  = 'sos' if mode == 'sos' else 'mean'
+        plot_std = plot_err and (mode == 'mean')          # std bands not defined in sos mode
+
         if self.laser == True:
-            fig,ax = plt.subplots(1,3,sharex=True, sharey=True,figsize=figsize)
-            ax[0].plot(self.average['scanvar_off'],self.average['PFY_off_mean'],color='tab:blue')
-            ax[0].plot(self.average['scanvar_on'],self.average['PFY_on_mean'],color='tab:orange')
-            ax[1].plot(self.average['scanvar_on'],self.average['PFY_on_mean']-self.average['PFY_off_mean'],color='tab:blue')
-            ax[1].plot(self.average['scanvar_on'],np.zeros(len(self.average['scanvar_on'])),'--k')
-            if plot_err:
-                ax[0].fill_between(self.average['scanvar_off'],
-                                   self.average['PFY_off_mean']-self.average['PFY_off_std'],
-                                   self.average['PFY_off_mean']+self.average['PFY_off_std'],
-                                   alpha=0.2,color='tab:blue')
-                ax[0].fill_between(self.average['scanvar_off'],
-                                   self.average['PFY_on_mean']-self.average['PFY_on_std'],
-                                   self.average['PFY_on_mean']+self.average['PFY_on_std'],
-                                   alpha=0.2,color='tab:orange')
-                
-                dPFYerr = np.sqrt(self.average['PFY_on_std']**2+self.average['PFY_off_std']**2)
+            PFY_on  = self.average[f'PFY_on_{key_pfy}']
+            PFY_off = self.average[f'PFY_off_{key_pfy}']
+
+            fig, ax = plt.subplots(1, 3, sharex=True, sharey=True, figsize=figsize)
+            ax[0].plot(self.average['scanvar_off'], PFY_off, color='tab:blue')
+            ax[0].plot(self.average['scanvar_on'],  PFY_on,  color='tab:orange')
+            ax[1].plot(self.average['scanvar_on'],  PFY_on - PFY_off, color='tab:blue')
+            ax[1].plot(self.average['scanvar_on'],  np.zeros(len(self.average['scanvar_on'])), '--k')
+
+            if plot_std:
+                PFY_on_std  = self.average['PFY_on_std']
+                PFY_off_std = self.average['PFY_off_std']
+                ax[0].fill_between(self.average['scanvar_off'], PFY_off - PFY_off_std, PFY_off + PFY_off_std,
+                                   alpha=0.2, color='tab:blue')
+                ax[0].fill_between(self.average['scanvar_off'], PFY_on  - PFY_on_std,  PFY_on  + PFY_on_std,
+                                   alpha=0.2, color='tab:orange')
+                dPFYerr = np.sqrt(PFY_on_std**2 + PFY_off_std**2)
                 ax[1].fill_between(self.average['scanvar_off'],
-                                   (self.average['PFY_on_mean']-self.average['PFY_off_mean'])-dPFYerr,
-                                   (self.average['PFY_on_mean']-self.average['PFY_off_mean'])+dPFYerr,
-                                   alpha=0.2,color='tab:blue')
-                ax[2].plot(self.average['scanvar_on'],self.average['PFY_on_std'],color='tab:orange')
-                ax[2].plot(self.average['scanvar_off'],self.average['PFY_off_std'],color='tab:blue')
-                ax[2].plot(self.average['scanvar_on'],dPFYerr,color='tab:green')
+                                   (PFY_on - PFY_off) - dPFYerr,
+                                   (PFY_on - PFY_off) + dPFYerr,
+                                   alpha=0.2, color='tab:blue')
+                ax[2].plot(self.average['scanvar_on'],  PFY_on_std,  color='tab:orange')
+                ax[2].plot(self.average['scanvar_off'], PFY_off_std, color='tab:blue')
+                ax[2].plot(self.average['scanvar_on'],  dPFYerr,     color='tab:green')
                 ax[2].set_ylabel('error')
 
-            if self.scantype=='mono_fly':
-                ax[0].set_xlabel('inc. energy (eV)')
-                ax[1].set_xlabel('inc. energy (eV)')
-                ax[2].set_xlabel('inc. energy (eV)')
-            elif self.scantype=='delay_fly':
-                ax[0].set_xlabel('delay (s)')
-                ax[1].set_xlabel('delay (s)')
-                ax[2].set_xlabel('delay (s)')
-                
-            ax[0].set_xlim([np.nanmin(self.average['scanvar_on']),np.nanmax(self.average['scanvar_on'])])
-            ax[0].set_title(f'Runs {self.runs[0]} to {self.runs[-1]}')
+            if self.scantype == 'mono_fly':
+                for a in ax: a.set_xlabel('inc. energy (eV)')
+            elif self.scantype == 'delay_fly':
+                for a in ax: a.set_xlabel('delay (s)')
+
+            ax[0].set_xlim([np.nanmin(self.average['scanvar_on']), np.nanmax(self.average['scanvar_on'])])
+            ax[0].set_title(f'Runs {self.runs[0]} to {self.runs[-1]}   [{mode}]')
         else:
-            fig,ax = plt.subplots(1,1,figsize=figsize)
-            ax.plot(self.average['scanvar'],self.average['PFY_mean'])
-            if plot_err:
+            PFY = self.average[f'PFY_{key_pfy}'] if mode == 'sos' else self.average['PFY_mean']
+            fig, ax = plt.subplots(1, 1, figsize=figsize)
+            ax.plot(self.average['scanvar'], PFY)
+            if plot_std:
                 ax.fill_between(self.average['scanvar'],
-                                self.average['PFY_mean']-self.average['PFY_std'],
-                                self.average['PFY_mean']+self.average['PFY_std'],
+                                PFY - self.average['PFY_std'],
+                                PFY + self.average['PFY_std'],
                                 alpha=0.2)
-            if self.scantype=='mono_fly':
+            if self.scantype == 'mono_fly':
                 ax.set_xlabel('inc. energy (eV)')
-            elif self.scantype=='delay_fly':
+            elif self.scantype == 'delay_fly':
                 ax.set_xlabel('delay (s)')
-            ax.set_xlim([np.nanmin(self.average['scanvar']),np.nanmax(self.average['scanvar'])])
-            ax.set_title(f'Runs {self.runs[0]} to {self.runs[-1]}')
+            ax.set_xlim([np.nanmin(self.average['scanvar']), np.nanmax(self.average['scanvar'])])
+            ax.set_title(f'Runs {self.runs[0]} to {self.runs[-1]}   [{mode}]')
+
         if savefig:
-            fig.savefig(f'figs/SVLS1D_{self.runs[0]}_{self.runs[-1]}.png',transparent=transparent,
-                        dpi=200, bbox_inches='tight')
+            fig.savefig(f'figs/SVLS1D_{self.runs[0]}_{self.runs[-1]}_{mode}.png',
+                        transparent=transparent, dpi=200, bbox_inches='tight')
        
-    def plot_svls2D_ET(self, savefig=False,transparent=True,figsize=(12,8),scale=1,ETstep=0.2):
+    def plot_svls2D_ET(self, savefig=False, transparent=True, figsize=(12,8), scale=1, ETstep=0.2, mode='mean'):
+        # NEW: mode='mean' or 'sos'
+        key_2d = 'norm' if mode == 'sos' else 'mean'
+
         try:
             self.average['E_emi'] = self.get_emi()
         except:
             print('emission is not calibrated, cannot plot energy transfer')
+
         if self.laser:
-            mono_on, E_trans_on, data_trans_on, std_trans_on = emi2ET(self.average['scanvar_on'],self.average['E_emi'],self.average['axis_svls_on_mean'],self.average['axis_svls_on_std'],ETstep)
-            mono_off, E_trans_off, data_trans_off, std_trans_off = emi2ET(self.average['scanvar_off'],self.average['E_emi'],self.average['axis_svls_off_mean'],self.average['axis_svls_on_std'],ETstep)
+            on_data  = self.average[f'axis_svls_on_{key_2d}']
+            off_data = self.average[f'axis_svls_off_{key_2d}']
+            if mode == 'mean':
+                on_std  = self.average['axis_svls_on_std']
+                off_std = self.average['axis_svls_on_std']   # preserving existing behavior (on_std passed for off too)
+            else:
+                on_std  = np.zeros_like(on_data)
+                off_std = np.zeros_like(off_data)
 
-            self.average['mono_on'] = mono_on
-            self.average['mono_off'] = mono_off
-            self.average['E_trans_on'] = E_trans_on
-            self.average['E_trans_off'] = E_trans_off
-            self.average['data_trans_on'] = data_trans_on
+            mono_on,  E_trans_on,  data_trans_on,  std_trans_on  = emi2ET(self.average['scanvar_on'],  self.average['E_emi'], on_data,  on_std,  ETstep)
+            mono_off, E_trans_off, data_trans_off, std_trans_off = emi2ET(self.average['scanvar_off'], self.average['E_emi'], off_data, off_std, ETstep)
+
+            self.average['mono_on']        = mono_on
+            self.average['mono_off']       = mono_off
+            self.average['E_trans_on']     = E_trans_on
+            self.average['E_trans_off']    = E_trans_off
+            self.average['data_trans_on']  = data_trans_on
             self.average['data_trans_off'] = data_trans_off
-            self.average['std_trans_on'] = std_trans_on
-            self.average['std_trans_off'] = std_trans_off
-            
+            self.average['std_trans_on']   = std_trans_on
+            self.average['std_trans_off']  = std_trans_off
 
-            ddatmax = np.nanmax(self.average['axis_svls_on_mean'].T-self.average['axis_svls_off_mean'].T)
-    
-            fig,ax = plt.subplots(1,3,sharex=True, sharey=True,figsize=figsize)
-            ax[0].pcolor(mono_on,E_trans_on,data_trans_on.T,cmap = 'Reds',
-                        vmin=0,vmax=np.nanmax(data_trans_on)/scale,shading='auto')
-            ax[1].pcolor(mono_off,E_trans_off,data_trans_off.T,cmap = 'Reds',
-                        vmin=0,vmax=np.nanmax(data_trans_off)/scale,shading='auto')
-            ax[2].pcolor(mono_on,E_trans_on,(data_trans_on-data_trans_off).T,cmap = 'bwr',
-                        vmin=-ddatmax,vmax=ddatmax,shading='auto')
+            ddatmax = np.nanmax(on_data.T - off_data.T)
+
+            fig, ax = plt.subplots(1, 3, sharex=True, sharey=True, figsize=figsize)
+            ax[0].pcolor(mono_on,  E_trans_on,  data_trans_on.T,  cmap='Reds',
+                         vmin=0, vmax=np.nanmax(data_trans_on)/scale, shading='auto')
+            ax[1].pcolor(mono_off, E_trans_off, data_trans_off.T, cmap='Reds',
+                         vmin=0, vmax=np.nanmax(data_trans_off)/scale, shading='auto')
+            ax[2].pcolor(mono_on,  E_trans_on, (data_trans_on - data_trans_off).T, cmap='bwr',
+                         vmin=-ddatmax, vmax=ddatmax, shading='auto')
 
             ax[0].set_xlabel('inc. energy (eV)')
             ax[1].set_xlabel('inc. energy (eV)')
             ax[2].set_xlabel('inc. energy (eV)')
-
             ax[0].set_ylabel('energy transfer (eV)')
-
             ax[0].set_title('laser off')
             ax[1].set_title('laser on')
             ax[2].set_title('difference')
-
-            ax[0].set_xlim([np.nanmin(self.average['scanvar_on']),np.nanmax(self.average['scanvar_on'])])
-            ax[0].set_title(f'Runs {self.runs[0]} to {self.runs[-1]}')
+            ax[0].set_xlim([np.nanmin(self.average['scanvar_on']), np.nanmax(self.average['scanvar_on'])])
+            ax[0].set_title(f'Runs {self.runs[0]} to {self.runs[-1]}   [{mode}]')
         else:
-            mono, E_trans, data_trans, std_trans = emi2ET(self.average['scanvar'],self.average['E_emi'],self.average['axis_svls_mean'],.2)
+            data = self.average[f'axis_svls_{key_2d}'] if mode == 'sos' else self.average['axis_svls_mean']
+            std  = np.zeros_like(data) if mode == 'sos' else self.average['axis_svls_std']
+            mono, E_trans, data_trans, std_trans = emi2ET(self.average['scanvar'], self.average['E_emi'], data, std, ETstep)
 
-            self.average['mono'] = mono
-            self.average['E_trans'] = E_trans
+            self.average['mono']       = mono
+            self.average['E_trans']    = E_trans
             self.average['data_trans'] = data_trans
-            self.average['std_trans'] = std_trans
-            
+            self.average['std_trans']  = std_trans
 
-            ddatmax = np.nanmax(self.average['axis_svls_mean'].T-self.average['axis_svls_mean'].T)
-    
-            fig,ax = plt.subplots(1,1,sharex=True, sharey=True,figsize=figsize)
-            ax.pcolor(mono,E_trans,data_trans.T,cmap = 'Reds',
-                        vmin=0,vmax=np.nanmax(data_trans)/scale,shading='auto')
+            fig, ax = plt.subplots(1, 1, sharex=True, sharey=True, figsize=figsize)
+            ax.pcolor(mono, E_trans, data_trans.T, cmap='Reds',
+                      vmin=0, vmax=np.nanmax(data_trans)/scale, shading='auto')
             ax.set_xlabel('inc. energy (eV)')
-
             ax.set_ylabel('energy transfer (eV)')
-
-            ax.set_xlim([np.nanmin(self.average['scanvar']),np.nanmax(self.average['scanvar'])])
-            ax.set_title(f'Runs {self.runs[0]} to {self.runs[-1]}')
+            ax.set_xlim([np.nanmin(self.average['scanvar']), np.nanmax(self.average['scanvar'])])
+            ax.set_title(f'Runs {self.runs[0]} to {self.runs[-1]}   [{mode}]')
 
         if savefig:
-            fig.savefig(f'figs/SVLS2D_{self.runs[0]}_{self.runs[-1]}.png',transparent=transparent,
-                        dpi=200, bbox_inches='tight')
+            fig.savefig(f'figs/SVLS2D_ET_{self.runs[0]}_{self.runs[-1]}_{mode}.png',
+                        transparent=transparent, dpi=200, bbox_inches='tight')
             
 
     def elastic_calibrate_from_two_points(self,

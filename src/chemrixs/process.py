@@ -293,6 +293,11 @@ class Reduced():
         self.proc['axis_svls'] = {}
         self.proc['axis_svls']['on'] = norm_svls[evc_on==True] 
         self.proc['axis_svls']['off'] = norm_svls[evc_off==True] 
+        #####ZY_edits - 060126 - added "sum over sum" normalization
+        self.proc['axis_svls']['SV_on']  = svls_proc[evc_on==True]
+        self.proc['axis_svls']['SV_off'] = svls_proc[evc_off==True]
+        self.proc['axis_svls']['I0_on']  = I0[evc_on==True]
+        self.proc['axis_svls']['I0_off'] = I0[evc_off==True]
         if (np.nansum(evc_on)+np.nansum(evc_off))==0:
             self.proc['axis_svls']=norm_svls
 
@@ -350,6 +355,17 @@ class Reduced():
                     if detector == 'axis_svls':
                         scanvar_on, tmp_on_sum, tmp_on_sumerr, tmp_on_mean, tmp_on_std, counts_on = bin_svls(norm_on,scanvar[onmask],bins=self.data.yaml['bins'],scantype='step')
                         scanvar_off, tmp_off_sum, tmp_off_sumerr, tmp_off_mean, tmp_off_std, counts_off = bin_svls(norm_off,scanvar[offmask],bins=self.data.yaml['bins'],scantype='step')
+                        #####ZY_edits - 060126 bin unnormalized svls and per-shot I0 separately
+                        SV_on,  SV_off  = self.proc['axis_svls']['SV_on'],  self.proc['axis_svls']['SV_off']
+                        I0_on,  I0_off  = self.proc['axis_svls']['I0_on'],  self.proc['axis_svls']['I0_off']
+                        _, sumSV_on,  _, _, _, _ = bin_svls(SV_on,              scanvar[onmask],  bins=self.data.yaml['bins'], scantype='step')
+                        _, sumSV_off, _, _, _, _ = bin_svls(SV_off,             scanvar[offmask], bins=self.data.yaml['bins'], scantype='step')
+                        _, sumI0_on,  _, _, _, _ = bin_svls(I0_on[:, None],     scanvar[onmask],  bins=self.data.yaml['bins'], scantype='step')
+                        _, sumI0_off, _, _, _, _ = bin_svls(I0_off[:, None],    scanvar[offmask], bins=self.data.yaml['bins'], scantype='step')
+                        self.axis_svls_on_sumSV  = sumSV_on
+                        self.axis_svls_off_sumSV = sumSV_off
+                        self.axis_svls_on_sumI0  = sumI0_on.squeeze(axis=-1)
+                        self.axis_svls_off_sumI0 = sumI0_off.squeeze(axis=-1)
                     else:
                         scanvar_on, tmp_on_sum, tmp_on_mean, tmp_on_std, counts_on = bin_data(norm_on,scanvar[onmask],bins=self.data.yaml['bins'],scantype='step')
                         scanvar_off, tmp_off_sum, tmp_off_mean, tmp_off_std, counts_off = bin_data(norm_off,scanvar[offmask],bins=self.data.yaml['bins'],scantype='step')
@@ -391,8 +407,21 @@ class Reduced():
                     # scanvar_off, tmp_off_sum, tmp_off_mean, tmp_off_std = bin_data(norm_off,scanvar_off,bins=self.data.yaml['bins'],scantype='fly')
 
                     if detector == 'axis_svls':
+                        _scanvar_on_pershot  = scanvar_on
+                        _scanvar_off_pershot = scanvar_off
                         scanvar_on, tmp_on_sum, tmp_on_sumerr, tmp_on_mean, tmp_on_std, counts_on = bin_svls(norm_on,scanvar_on,bins=self.data.yaml['bins'],scantype='fly')
                         scanvar_off, tmp_off_sum, tmp_off_sumerr, tmp_off_mean, tmp_off_std, counts_off = bin_svls(norm_off,scanvar_off,bins=self.data.yaml['bins'],scantype='fly')
+                        #####ZY_edits - 060126 bin unnormalized svls and per-shot I0 separately
+                        SV_on,  SV_off  = self.proc['axis_svls']['SV_on'],  self.proc['axis_svls']['SV_off']
+                        I0_on,  I0_off  = self.proc['axis_svls']['I0_on'],  self.proc['axis_svls']['I0_off']
+                        _, sumSV_on,  _, _, _, _ = bin_svls(SV_on,              _scanvar_on_pershot,  bins=self.data.yaml['bins'], scantype='fly')
+                        _, sumSV_off, _, _, _, _ = bin_svls(SV_off,             _scanvar_off_pershot, bins=self.data.yaml['bins'], scantype='fly')
+                        _, sumI0_on,  _, _, _, _ = bin_svls(I0_on[:, None],     _scanvar_on_pershot,  bins=self.data.yaml['bins'], scantype='fly')
+                        _, sumI0_off, _, _, _, _ = bin_svls(I0_off[:, None],    _scanvar_off_pershot, bins=self.data.yaml['bins'], scantype='fly')
+                        self.axis_svls_on_sumSV  = sumSV_on
+                        self.axis_svls_off_sumSV = sumSV_off
+                        self.axis_svls_on_sumI0  = sumI0_on.squeeze(axis=-1)
+                        self.axis_svls_off_sumI0 = sumI0_off.squeeze(axis=-1)
 
                     else:
                         scanvar_on, tmp_on_sum, tmp_on_mean, tmp_on_std, counts_on = bin_data(norm_on,scanvar_on,bins=self.data.yaml['bins'],scantype='fly')

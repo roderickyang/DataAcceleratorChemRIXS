@@ -359,6 +359,14 @@ def avg_data_count(runs : list, proc_folder : str = '',proc_path : str = ''):
 
             # do count-weighted averaging
             for key in keys:
+                #####ZY_edits - 060126 - make the sum keys work
+                if key.endswith('sumSV') or key.endswith('sumI0'):
+                    if avg[key].shape == f[key].shape:
+                        avg[key] = avg[key] + np.asarray(f[key])
+                    else:
+                        print(f'Run {run} {key} shapes do not match')
+                    continue
+
                 if laser:
                     if 'on' in key:
                         count = count_on
@@ -385,6 +393,9 @@ def avg_data_count(runs : list, proc_folder : str = '',proc_path : str = ''):
             counts = counts + count
     # Divide by count per scanvar
     for key in keys:
+        #####ZY_edits - 060126 - make the sum keys work
+        if key.endswith('sumSV') or key.endswith('sumI0'):
+            continue
         if laser:
             if 'on' in key:
                 if len(avg[key].shape) == 1:
