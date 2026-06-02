@@ -149,7 +149,8 @@ class Reduced():
 
         if 'axis_svls' in self.data.yaml['int_detectors']:
             self.proc_svls()
-        
+        if 'fzp' in self.data.yaml:        ##### ZY_edits - 060226 - add transmission
+            self.proc_fzp()
         self.bin_intdet()
         
 
@@ -455,6 +456,58 @@ class Reduced():
                     setattr(self,'scanvar_off',scanvar_off)
                     setattr(self,'counts_on',counts_on)
                     setattr(self,'counts_off',counts_off)
+
+
+    def proc_fzp(self):  ##### ZY_edits - 060226 - add transmission
+        '''
+        Reduce the FZP Piranha transmission detector. It rides under
+        /intg/axis_svls as fzp_piranha_sum_full_area (loaded via axis_svls_dict['fzp']),
+        so it is already countmask-aligned with the SVLS frames, eventcodes and I0.
+
+        '''
+        roi        = self.data.yaml['fzp']['roi']
+        offset_roi = self.data.yaml['fzp']['offset_roi']
+        det        = self.data.integrating.axis_svls
+
+        fzp = np.asarray(det.fzp, dtype=float)                       # (shots, pixels)
+
+        # per-shot pedestal from the dark region, then integrate the peak -> scalar/shot
+        ped   = np.nanmean(fzp[:, offset_roi[0]:offset_roi[1]], axis=1)
+        I_fzp = np.nansum(fzp[:, roi[0]:roi[1]] - ped[:, np.newaxis], axis=1)
+
+        # transmitted intensity / incident I0 (same I0 used for the SVLS)
+        I0 = det.I0
+        norm_fzp = I_fzp / I0 if self.norm else I_fzp
+
+        # on/off split (identical rule to proc_svls)
+        expected_count = st.mode(det.count, keepdims=False)[0]
+        evc     = det.eventcodes
+        evc_on  = np.asarray([evc[:, self.data.yaml['evc'][True]]  / expected_count > 0.5]).squeeze()
+        evc_off = np.asarray([evc[:, self.data.yaml['evc'][False]] / expected_count > 0.5]).squeeze()
+
+        self.proc['fzp'] = {'on': norm_fzp[evc_on == True],
+                            'off': norm_fzp[evc_off == True]}
+
+        # ---- bin the scalar vs the scan variable ----
+        # NOTE: bin_data's 1-D path is broken (indexes a 1-D array as [i,:]), so feed it
+        # an (N,1) column and squeeze the result back to 1-D.
+        sct, bins = self.data.scantype, self.data.yaml['bins']
+        bintype = 'fly' if 'fly' in sct else ('step' if sct in ('mono', 'delay') else 'static')
+        scanvar = getattr(det, 'mono', None) if 'mono' in sct else getattr(det, 'delay', None)
+
+        if (np.nansum(evc_on) + np.nansum(evc_off)) == 0:           # no laser split
+            self.proc['fzp'] = norm_fzp
+            if scanvar is not None:
+                _, s, m, sd, _ = bin_data(norm_fzp[:, None], scanvar.squeeze(), bins=bins, scantype=bintype)
+                self.fzp_sum, self.fzp_mean, self.fzp_std = s.squeeze(), m.squeeze(), sd.squeeze()
+        else:
+            sv_on  = scanvar[evc_on].squeeze()
+            sv_off = scanvar[evc_off].squeeze()
+            _, s_on,  m_on,  sd_on,  _ = bin_data(self.proc['fzp']['on'][:,  None], sv_on,  bins=bins, scantype=bintype)
+            _, s_off, m_off, sd_off, _ = bin_data(self.proc['fzp']['off'][:, None], sv_off, bins=bins, scantype=bintype)
+            self.fzp_on_sum,  self.fzp_off_sum  = s_on.squeeze(),  s_off.squeeze()
+            self.fzp_on_mean, self.fzp_off_mean = m_on.squeeze(),  m_off.squeeze()
+            self.fzp_on_std,  self.fzp_off_std  = sd_on.squeeze(), sd_off.squeeze()
 
     def save_dat(self):
         print('saving data')
