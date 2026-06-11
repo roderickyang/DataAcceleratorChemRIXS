@@ -326,7 +326,7 @@ class Reduced():
                 print('static run!')
                 if (np.nansum(onmask)+np.nansum(offmask))==0:
                     tmp_mean  = np.nanmean(norm,axis=0)
-                    tmp_sum = np.nanmsum(norm,axis=0)
+                    tmp_sum = np.nansum(norm,axis=0)
                     tmp_std   = np.nanstd(norm,axis=0)
                     
                 else:

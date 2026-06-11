@@ -1,4 +1,4 @@
-import time
+iimport time
 import h5py
 
 import numpy as np
