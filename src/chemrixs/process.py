@@ -380,7 +380,7 @@ class Reduced():
                     if self.data.yaml['TT_corr']['bool']:
                         tt_corr=np.loadtxt(f'proc/leading_edge_{self.data.run}.txt')
                         scanvar_on = (scanvar[onmask]).squeeze() - (tt_corr-self.data.yaml['TT_corr']['offset'])*5*1e-15 #add pixel converted to s
-                        scanvar_off = (scanvar[offmask]).squeeze() - (np.mean(tt_corr)-self.data.yaml['TT_corr']['offset'])*5*1e-15 #no TT correction for laser off shots but we wanna make sure the scan axis still matches
+                        scanvar_off = (scanvar[offmask]).squeeze() - (np.nanmean(tt_corr)-self.data.yaml['TT_corr']['offset'])*5*1e-15 #no TT correction for laser off shots but we wanna make sure the scan axis still matches
                         print('corrected delay')
                     else:
                         scanvar_on = (scanvar[onmask]).squeeze()

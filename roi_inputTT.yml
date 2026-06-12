@@ -5,12 +5,13 @@ red_bg_path: ''
 expected_count: []
 
 #with or without Timing tool correction
-TT_corr: {bool: True, offset: 1140}
+TT_corr: {bool: False, offset: 1100}
 
 #define binning
 bins: ['bin_edges', 
-        [-2e-12,5e-12,48]] ## py run 1-146
-        # [-2e-12,3.1e-12,34]]
+        # [-2e-12,5e-12,48]] ## py run 1-146
+        # [-2e-12,5e-12,35]]
+        [-2e-12,3.1e-12,34]]
         # [-1e-12,4.7e12,16]]
         # [392,402,40]] #['bin_width', 0.5e-12] #['Nbins', 15]
 
@@ -39,11 +40,11 @@ emi_calib: [[1,87,-0.09767442, 738.974419],
             
 #Defining ROIs for the different detectors
 apd:   { channels: [5,7], roi: [[65, 75],[65, 75]],  bg_roi: [0,60]}
-fim0:   { channels: [4,5,6,7], roi: [[65, 75],[65, 75],[65, 75],[65, 75]],  bg_roi: [0,60]}
-fim1:   { channels: [4,5,6,7], roi: [[59, 66],[59, 66],[59, 66],[59, 66]],  bg_roi: [0,60]}
+fim0:   { channels: [5,6], roi: [[67, 72],[66, 73]],  bg_roi: [0,60]}
+fim1:   { channels: [5,6,7], roi: [[62, 66],[58, 66],[60, 66]],  bg_roi: [0,55]}
 andor_vls: {roi: [1400,1600,100,150], offset_roi: [1500,1600], threshold: [3,10000], rot_angle: 4, rot_crop: [11:510]} # first 2 values used both 2D and 3D, last two only for 3D
 andor_dir: {roi: [700,1300], offset_roi: [400,500]}  # first 2 values used both 2D and 3D, last two only for 3D
-svls: {roi: [2000,6000], offset_roi: [20,100], threshold: [0,800]}  # first 2 values used both 2D and 3D, last two only for 3D
+svls: {roi: [2000,6000], offset_roi: [20,100], threshold: [0,5000]}  # first 2 values used both 2D and 3D, last two only for 3D
 
 
 #Which detectors to be loaded/processed:
