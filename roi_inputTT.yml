@@ -5,7 +5,7 @@ red_bg_path: ''
 expected_count: []
 
 #with or without Timing tool correction
-TT_corr: {bool: True, offset: 1100}
+TT_corr: {bool: False, offset: 1100}
 
 #define binning
 bins: ['bin_edges', 

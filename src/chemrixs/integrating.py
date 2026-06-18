@@ -209,6 +209,17 @@ class Integrating():
                             mono = mono_energy(tmp,premirror)
                             # mono = np.polyval(self.yaml['mono_calib'],mono)
                             setattr(det, 'mono', mono)
+                            ##### ZY_edits - 061726 - read the run's nominal delay
+                            if self.yaml.get('TT_corr', {}).get('mono', False):
+                                dkey = self.yaml['TT_corr'].get('delay_key',
+                                                                self.yaml['scanvar']['delay'])
+                                try:
+                                    d = intgrp[detector][dkey][()]
+                                    setattr(det, 'delay_nominal',
+                                            float(np.nanmean(d.squeeze()/getattr(det,'count').squeeze())))
+                                except Exception:
+                                    print(f'WARN: nominal-delay key "{dkey}" missing -> mono-TT nominal=0')
+                                    setattr(det, 'delay_nominal', 0.0)
                         elif self.scantype=='mono':
                             #FIXME: how do I here pull the scanvar 
                             hrencoder = getattr(det,'mono_encoder')/getattr(det,'count')

@@ -423,6 +423,37 @@ class Reduced():
                         self.axis_svls_off_sumSV = sumSV_off
                         self.axis_svls_on_sumI0  = sumI0_on.squeeze(axis=-1)
                         self.axis_svls_off_sumI0 = sumI0_off.squeeze(axis=-1)
+                        ##### ZY_edits - 061726 - bin data in 3D, under sum over sum convention
+                        if (self.data.scantype=='mono_fly'
+                                and self.data.yaml['TT_corr']['bool']
+                                and self.data.yaml['TT_corr'].get('mono', False)):
+                            tt_corr = np.loadtxt(f'proc/leading_edge_{self.data.run}.txt')
+
+                            # fixed pump-probe delay for this run, set manually in yaml
+                            nominal = 0.0
+                            for row in self.data.yaml.get('mono_delay', []):
+                                row = np.asarray(row, dtype=float)
+                                if (self.data.run > row[0]) and (self.data.run < row[1]):
+                                    nominal = float(row[2])
+
+                            tau_on = nominal - (tt_corr - self.data.yaml['TT_corr']['offset'])*5*1e-15
+
+                            tb = self.data.yaml['time_bins']
+                            t_edges = np.linspace(float(tb[1][0]), float(tb[1][1]), int(tb[1][2]))
+                            it = np.digitize(tau_on, t_edges) - 1
+                            nT = len(t_edges) - 1
+
+                            sumSV_T, sumI0_T = [], []
+                            for k in range(nT):
+                                sel = (it == k)
+                                _, sSV, _, _, _, _ = bin_svls(SV_on[sel], _scanvar_on_pershot[sel],
+                                                              bins=self.data.yaml['bins'], scantype='fly')
+                                _, sI0, _, _, _, _ = bin_svls(I0_on[sel][:, None], _scanvar_on_pershot[sel],
+                                                              bins=self.data.yaml['bins'], scantype='fly')
+                                sumSV_T.append(sSV)
+                                sumI0_T.append(sI0.squeeze(axis=-1))
+                            self.axis_svls_on_ET_sumSV = np.stack(sumSV_T)   # (nT, nE, emission)
+                            self.axis_svls_on_ET_sumI0 = np.stack(sumI0_T)   # (nT, nE)
 
                     else:
                         scanvar_on, tmp_on_sum, tmp_on_mean, tmp_on_std, counts_on = bin_data(norm_on,scanvar_on,bins=self.data.yaml['bins'],scantype='fly')

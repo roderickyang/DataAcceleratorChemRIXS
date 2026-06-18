@@ -13,6 +13,13 @@ expected_count: []
 bins: ['bin_edges', 
         [696.5,710.5,40]]
 
+
+TT_corr: {bool: False, offset: 550, mono: False}
+# mono_delay: [[109, 115, 0.0e-12],
+#              [115, 121, 1.0e-12]]
+# time_bins: ['bin_edges', [-1.0e-12, 5.0e-12, 30]]
+
+
 #define eventcodes for on and off
 evc: {on: 273, off: 272, any: 274} #ferufe
 

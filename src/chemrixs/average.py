@@ -132,7 +132,11 @@ class Average():
             avg['axis_svls_off_norm'] = avg['axis_svls_off_sumSV'] / avg['axis_svls_off_sumI0'][:, None]
             avg['PFY_on_sos']  = avg['axis_svls_on_sumSV'].sum(axis=1)  / avg['axis_svls_on_sumI0']
             avg['PFY_off_sos'] = avg['axis_svls_off_sumSV'].sum(axis=1) / avg['axis_svls_off_sumI0']
-
+        ##### ZY_edits - 061726 - add mono+TT 3d
+        if 'axis_svls_on_ET_sumSV' in avg and 'axis_svls_on_ET_sumI0' in avg:
+            with np.errstate(invalid='ignore', divide='ignore'):
+                avg['axis_svls_on_ET'] = (avg['axis_svls_on_ET_sumSV']
+                                          / avg['axis_svls_on_ET_sumI0'][:, :, None])
         return avg
     
     def get_PFYs(self):
@@ -674,3 +678,26 @@ class Average():
 # ax[0].plot(np.asarray(OK_mono['E_trans_off']), np.nansum(np.asarray(OK_mono['data_trans_off'])[inds-2:inds+2,:],axis=0),label='laser off, 522.8eV')
 # ax[1].plot(np.asarray(OK_mono['E_trans_off']), np.nansum(np.asarray(OK_mono['data_trans_on'])[inds-2:inds+2,:],axis=0),label='laser on')
 
+    ##### plotting method for 3D data
+    def plot_mono_at_delay(self, tau, emi_lo=None, emi_hi=None, diff=False, figsize=(8,4)):
+            """Mono spectrum (PFY vs energy) at the nearest absolute-time bin to `tau` (s)."""
+            ET = self.average['axis_svls_on_ET']                      # (nT, nE, emission)
+            tb, eb = self.yaml['time_bins'], self.yaml['bins']
+            tcen = 0.5*(np.linspace(float(tb[1][0]),float(tb[1][1]),int(tb[1][2]))[:-1]
+                        + np.linspace(float(tb[1][0]),float(tb[1][1]),int(tb[1][2]))[1:])
+            ecen = 0.5*(np.linspace(float(eb[1][0]),float(eb[1][1]),int(eb[1][2]))[:-1]
+                        + np.linspace(float(eb[1][0]),float(eb[1][1]),int(eb[1][2]))[1:])
+            it = int(np.argmin(np.abs(tcen - tau)))
+            sl = slice(None) if emi_lo is None else slice(emi_lo, emi_hi+1)
+
+            pfy_on = np.nansum(ET[it][:, sl], axis=1)
+            plt.figure(figsize=figsize)
+            if diff:
+                pfy_off = np.nansum(self.average['axis_svls_off_norm'][:, sl], axis=1)
+                plt.plot(ecen, pfy_on - pfy_off, 'k'); plt.ylabel('on − off PFY (SoS)')
+            else:
+                plt.plot(ecen, pfy_on); plt.ylabel('PFY (SoS)')
+            plt.xlabel('inc. energy (eV)')
+            plt.title(f'mono spectrum at τ ≈ {tcen[it]*1e15:.0f} fs')
+            plt.tight_layout(); plt.show()
+            return ecen, pfy_on
