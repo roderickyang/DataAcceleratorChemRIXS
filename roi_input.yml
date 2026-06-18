@@ -57,7 +57,7 @@ fim1:   { channels: [5,6,7], roi: [[59, 66],[59, 66],[59, 66]],  bg_roi: [0,55]}
 andor_vls: {roi: [1400,1600,100,150], offset_roi: [1500,1600], threshold: [3,10000], rot_angle: 4, rot_crop: [11:510]} # first 2 values used both 2D and 3D, last two only for 3D
 andor_dir: {roi: [700,1300], offset_roi: [400,500]}  # first 2 values used both 2D and 3D, last two only for 3D
 svls: {roi: [2000,6000], offset_roi: [20,100], threshold: [0,5000]}  # first 2 values used both 2D and 3D, last two only for 3D
-fzp: {roi: [1000, 1150], offset_roi: [600, 950]} ##### ZY_edits - 060226 - add transmission
+# fzp: {roi: [1000, 1150], offset_roi: [600, 950]} ##### ZY_edits - 060226 - add transmission
 
 #Which detectors to be loaded/processed:
 int_detectors: {

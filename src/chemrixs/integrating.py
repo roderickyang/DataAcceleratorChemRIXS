@@ -144,7 +144,7 @@ class Integrating():
                     expected_count = st.mode(det.count, keepdims=False)[0]
             else:
                 expected_count = self.yaml['expected_count']
-            countmask = (det.count<expected_count+1)&(det.count>expected_count-1)
+            countmask = (det.count<expected_count+2)&(det.count>expected_count-2)
             # breakpoint()
             for at in self.yaml[det_spec_dict['attrdict']]:
                 # try:
