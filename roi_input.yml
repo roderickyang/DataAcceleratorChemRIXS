@@ -13,6 +13,7 @@ expected_count: []
 bins: ['bin_edges', 
         [696.5,710.5,40]]
 timestamp_sort: True
+andor_roll: True
 
 TT_corr: {bool: False, offset: 550, mono: False}
 # mono_delay: [[109, 115, 0.0e-12],

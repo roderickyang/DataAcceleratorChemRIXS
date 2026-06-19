@@ -188,6 +188,15 @@ class Integrating():
                     setattr(det, 'delay', getattr(det, 'delay')[idx])
                 if (self.scantype == 'mono'  or self.scantype == 'mono_fly'):
                     setattr(det, 'mono',  getattr(det, 'mono')[idx])
+                #### ZY_edits - 061826 - roll the detectors, similar to beamtime code
+                if self.yaml.get('andor_roll', False):
+                    setattr(det, 'full_area', np.roll(getattr(det, 'full_area'), 1, axis=0))
+                    for at in self.yaml[det_spec_dict['attrdict']]:
+                        setattr(det, at, getattr(det, at)[1:])
+                    if (self.scantype == 'delay' or self.scantype == 'delay_fly'):
+                        setattr(det, 'delay', getattr(det, 'delay')[1:])
+                    if (self.scantype == 'mono'  or self.scantype == 'mono_fly'):
+                        setattr(det, 'mono',  getattr(det, 'mono')[1:])
 
     def get_scanvar(self,intgrp):
         if (self.scantype=='mono' or self.scantype=='mono_fly'):
