@@ -216,7 +216,10 @@ class Integrating():
                     else:
                         #for integrating detectors, the mono encoder value is the sum over all shots
                         if self.scantype=='mono_fly':
-                            hrencoder = getattr(det,'mono_encoder')/getattr(det,'count')
+                            # hrencoder = getattr(det,'mono_encoder')/getattr(det,'count')
+                            ##### ZY_edits - 061926 - change count to accept+-1 counts
+                            expected_count = st.mode(det.count, keepdims=False)[0]
+                            hrencoder = getattr(det,'mono_encoder')/expected_count
                             tmp = np.polyval(mono_calib,hrencoder)
                             premirror = get_premirror_pitch(self.epics['MONO_premirror_pitch'])
                             mono = mono_energy(tmp,premirror)
