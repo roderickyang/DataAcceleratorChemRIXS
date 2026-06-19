@@ -12,7 +12,7 @@ expected_count: []
 
 bins: ['bin_edges', 
         [696.5,710.5,40]]
-
+timestamp_sort: True
 
 TT_corr: {bool: False, offset: 550, mono: False}
 # mono_delay: [[109, 115, 0.0e-12],
@@ -21,7 +21,8 @@ TT_corr: {bool: False, offset: 550, mono: False}
 
 
 #define eventcodes for on and off
-evc: {on: 273, off: 272, any: 274} #ferufe
+# evc: {on: 273, off: 272, any: 274} #ferufe
+evc: {on: 272, off: 273, any: 274}
 
 #define scan variables
 scanvar: {mono: 'mono_ev', 

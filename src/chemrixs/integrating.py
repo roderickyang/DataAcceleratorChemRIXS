@@ -76,6 +76,10 @@ class Integrating():
                     )
                 )
         # print(sum(self.andor_vls.count_mask))
+        ##### ZY_edits - add timestamp
+        self.top_timestamp = (np.asarray(intgrp['timestamp'])
+                              if self.yaml.get('timestamp_sort', False) and 'timestamp' in intgrp
+                              else None)
 
         self.get_scanvar(intgrp)
         self.countmask()
@@ -175,6 +179,15 @@ class Integrating():
                 else:
                     masked = a[countmask]
                 setattr(det, 'mono', masked)
+            ##### ZY_edits - 061826 - add timestamp sort
+            if self.yaml.get('timestamp_sort', False) and not useDask:
+                idx = np.argsort(self.top_timestamp[countmask])   # /intg/timestamp, this detector's countmask
+                for at in self.yaml[det_spec_dict['attrdict']]:
+                    setattr(det, at, getattr(det, at)[idx])
+                if (self.scantype == 'delay' or self.scantype == 'delay_fly'):
+                    setattr(det, 'delay', getattr(det, 'delay')[idx])
+                if (self.scantype == 'mono'  or self.scantype == 'mono_fly'):
+                    setattr(det, 'mono',  getattr(det, 'mono')[idx])
 
     def get_scanvar(self,intgrp):
         if (self.scantype=='mono' or self.scantype=='mono_fly'):
