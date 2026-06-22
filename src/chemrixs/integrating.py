@@ -263,9 +263,9 @@ class Integrating():
                 count = getattr(det,'count')
                 # countmask = getattr(det, 'countmask')
                 ##### ZY_edits - 062126 - change count to accept+-1 counts, fix for delay scan
-                expected_count = st.mode(count.squeeze(), keepdims=False)[0]
+                # expected_count = st.mode(count.squeeze(), keepdims=False)[0]
                 tmp = intgrp[detector][delay_attr][()]
-                delay = tmp.squeeze()/expected_count
+                delay = tmp.squeeze()/count.squeeze()
                 print(f'delay shape {delay.shape}')
                 setattr(det, 'delay', delay)
         else:
