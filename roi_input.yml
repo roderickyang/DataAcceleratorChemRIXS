@@ -11,14 +11,18 @@ expected_count: []
 #         # [392,402,40]] #['bin_width', 0.5e-12] #['Nbins', 15]
 
 bins: ['bin_edges', 
-        [696.5,710.5,40]]
+        [696.5,710.5,36]]
+
+# bins: ['bin_edges', 
+#         [-2e-12,5e-12,30]] ## py run 1-146
+
 timestamp_sort: True
 andor_roll: True
 
-TT_corr: {bool: False, offset: 550, mono: False}
-# mono_delay: [[109, 115, 0.0e-12],
-#              [115, 121, 1.0e-12]]
-# time_bins: ['bin_edges', [-1.0e-12, 5.0e-12, 30]]
+TT_corr: {bool: False, offset: 1170, mono: False}
+# mono_delay: [[112, 118, 1.0e-12],
+#              ]
+# time_bins: ['bin_edges', [0.5e-12, 1.5e-12, 6]]
 
 
 #define eventcodes for on and off
@@ -29,7 +33,7 @@ evc: {on: 272, off: 273, any: 274}
 scanvar: {mono: 'mono_ev', 
         mono_fly: '',
         delay: 'scan_sum_lxt_ttc',
-        delay_fly: '',
+        delay_fly: 'lxt_ttc',
         waveplate: 'lm2k2_inj_mp1_att1_wp1'}
 
 # mono_calib: [[1,59,-6.68728698e-03,  1.57380907e+05],

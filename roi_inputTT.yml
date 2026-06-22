@@ -9,9 +9,9 @@ TT_corr: {bool: False, offset: 1100}
 
 #define binning
 bins: ['bin_edges', 
-        # [-2e-12,5e-12,48]] ## py run 1-146
+        [-2e-12,5e-12,24]] ## py run 1-146
         # [-2e-12,5e-12,35]]
-        [-2e-12,3.1e-12,34]]
+        # [-2e-12,3.1e-12,34]]
         # [-1e-12,4.7e12,16]]
         # [392,402,40]] #['bin_width', 0.5e-12] #['Nbins', 15]
 
