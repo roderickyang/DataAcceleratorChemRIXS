@@ -378,9 +378,14 @@ class Reduced():
                 if self.data.scantype=='delay_fly':
                     scanvar = getattr(det,'delay')
                     if self.data.yaml['TT_corr']['bool']:
+                        ##### ZY_edits - 062326 
                         tt_corr=np.loadtxt(f'proc/leading_edge_{self.data.run}.txt')
-                        scanvar_on = (scanvar[onmask]).squeeze() - (tt_corr-self.data.yaml['TT_corr']['offset'])*5*1e-15 #add pixel converted to s
-                        scanvar_off = (scanvar[offmask]).squeeze() - (np.nanmean(tt_corr)-self.data.yaml['TT_corr']['offset'])*5*1e-15 #no TT correction for laser off shots but we wanna make sure the scan axis still matches
+                        assert tt_corr.shape[0] == int(np.nansum(onmask)), (
+                            f"TT/on-shot mismatch: leading_edge has {tt_corr.shape[0]} rows, "
+                            f"onmask selects {int(np.nansum(onmask))}. Re-extract leading_edge "
+                            f"under the SAME timestamp_sort/andor_roll/countmask/evc as this reduction.")
+                        scanvar_on = (scanvar[onmask]).squeeze() - (tt_corr-self.data.yaml['TT_corr']['offset'])*5*1e-15
+                        scanvar_off = (scanvar[offmask]).squeeze() - (np.nanmean(tt_corr)-self.data.yaml['TT_corr']['offset'])*5*1e-15
                         print('corrected delay')
                     else:
                         scanvar_on = (scanvar[onmask]).squeeze()
@@ -428,6 +433,10 @@ class Reduced():
                                 and self.data.yaml['TT_corr']['bool']
                                 and self.data.yaml['TT_corr'].get('mono', False)):
                             tt_corr = np.loadtxt(f'proc/leading_edge_{self.data.run}.txt')
+                            assert tt_corr.shape[0] == SV_on.shape[0] == _scanvar_on_pershot.shape[0], (
+                                f"mono_fly TT/SV_on mismatch: tt_corr={tt_corr.shape[0]}, "
+                                f"SV_on={SV_on.shape[0]}, scanvar_on_pershot={_scanvar_on_pershot.shape[0]}. "
+                                f"All three must be the same on-shot selection in the same order.")
 
                             # fixed pump-probe delay for this run, set manually in yaml
                             nominal = 0.0

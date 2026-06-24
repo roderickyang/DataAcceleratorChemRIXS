@@ -10,16 +10,16 @@ expected_count: []
 # #        [521,530,40]] 
 #         # [392,402,40]] #['bin_width', 0.5e-12] #['Nbins', 15]
 
-bins: ['bin_edges', 
-        [696.5,710.5,36]]
-
 # bins: ['bin_edges', 
-#         [-2e-12,5e-12,30]] ## py run 1-146
+#         [696.5,710.5,36]]
+
+bins: ['bin_edges', 
+        [-2e-12,5e-12,36]] ## py run 1-146
 
 timestamp_sort: True
 andor_roll: True
 
-TT_corr: {bool: False, offset: 1170, mono: False}
+TT_corr: {bool: False, offset: 1200, mono: False}
 # mono_delay: [[112, 118, 1.0e-12],
 #              ]
 # time_bins: ['bin_edges', [0.5e-12, 1.5e-12, 6]]
