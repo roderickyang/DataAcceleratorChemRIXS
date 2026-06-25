@@ -160,7 +160,7 @@ class Average():
         return emi
 
 #####ZY_edits - 051726 - add despeckle method
-    def apply_despeckle(self, kernel_size=3, n_sigma=10, verbose=True):
+    def apply_despeckle(self, kernel_size=3, n_sigma=7, verbose=True):
         """
         Replace anomaly pixels in all 2D maps inside self.average.
 
